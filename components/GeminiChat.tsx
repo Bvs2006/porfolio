@@ -1,8 +1,8 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI } from '@google/genai';
-import { MessageSquare, Send, X, Bot } from 'lucide-react';
-import { PERSONAL_INFO, SKILLS, PROJECTS, ACHIEVEMENTS, EDUCATION, CERTIFICATIONS } from '../constants';
+import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
+import { Bot, MessageSquare, Send, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ACHIEVEMENTS, CERTIFICATIONS, EDUCATION, PERSONAL_INFO, PROJECTS, SKILLS } from '../constants';
 
 const GeminiChat: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,6 +12,24 @@ const GeminiChat: React.FC = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const systemPrompt = `
+    You are an AI assistant for Venkata Srujith Bellamkonda's portfolio.
+    Context:
+    Name: ${PERSONAL_INFO.name}
+    Title: ${PERSONAL_INFO.title}
+    Bio: ${PERSONAL_INFO.objective}
+    Skills: ${JSON.stringify(SKILLS)}
+    Projects: ${JSON.stringify(PROJECTS)}
+    Achievements: ${JSON.stringify(ACHIEVEMENTS)}
+    Education: ${JSON.stringify(EDUCATION)}
+    Certifications: ${JSON.stringify(CERTIFICATIONS)}
+
+    Instructions:
+    Answer questions about Venkata based ONLY on this context. 
+    Be professional, friendly, and concise. You represent him.
+    If you don't know the answer, say you're not sure and suggest contacting him via email: ${PERSONAL_INFO.email}.
+  `;
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -30,92 +48,89 @@ const GeminiChat: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Corrected: Always use process.env.API_KEY directly in the named parameter.
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const systemPrompt = `
-        You are an AI assistant for Venkata Srujith Bellamkonda's portfolio.
-        Context:
-        Name: ${PERSONAL_INFO.name}
-        Bio: ${PERSONAL_INFO.objective}
-        Skills: ${JSON.stringify(SKILLS)}
-        Projects: ${JSON.stringify(PROJECTS)}
-        Achievements: ${JSON.stringify(ACHIEVEMENTS)}
-        Education: ${JSON.stringify(EDUCATION)}
-        Certifications: ${JSON.stringify(CERTIFICATIONS)}
-
-        Instructions:
-        Answer questions about Venkata based ONLY on this context. 
-        Be professional, friendly, and concise.
-        If you don't know the answer, say you're not sure and suggest contacting him via email: ${PERSONAL_INFO.email}.
-      `;
-
-      const response = await ai.models.generateContent({
+      const chat = ai.chats.create({
         model: 'gemini-3-flash-preview',
-        contents: userMsg,
         config: { systemInstruction: systemPrompt }
       });
 
-      // Corrected: Use .text property instead of a method or fallback if available
-      const botText = response.text || "I'm sorry, I couldn't process that. Please try again.";
-      setMessages(prev => [...prev, { role: 'bot', text: botText }]);
+      const streamResponse = await chat.sendMessageStream({ message: userMsg });
+      
+      let botText = '';
+      setMessages(prev => [...prev, { role: 'bot', text: '' }]);
+      
+      for await (const chunk of streamResponse) {
+        const c = chunk as GenerateContentResponse;
+        botText += c.text;
+        
+        setMessages(prev => {
+          const newMsgs = [...prev];
+          newMsgs[newMsgs.length - 1] = { role: 'bot', text: botText };
+          return newMsgs;
+        });
+      }
     } catch (error) {
-      console.error(error);
-      setMessages(prev => [...prev, { role: 'bot', text: "Error connecting to AI. Please try again later." }]);
+      console.error('Gemini Chat Error:', error);
+      setMessages(prev => [...prev, { role: 'bot', text: "I'm having trouble connecting. Feel free to reach out to Venkata directly!" }]);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-8 right-8 z-50">
       {isOpen ? (
-        <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-80 md:w-96 flex flex-col h-[500px] overflow-hidden">
-          <div className="bg-slate-900 p-4 flex justify-between items-center border-b border-slate-700">
-            <div className="flex items-center gap-2">
-              <Bot className="w-5 h-5 text-cyan-400" />
-              <span className="font-semibold text-sm">Ask Venkata AI</span>
+        <div className="bg-[#020617] border border-slate-800 rounded-[2.5rem] shadow-2xl w-80 md:w-[400px] flex flex-col h-[600px] overflow-hidden backdrop-blur-2xl">
+          <div className="bg-slate-900/50 p-6 flex justify-between items-center border-b border-slate-800">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-brand-500/10 flex items-center justify-center border border-brand-500/20">
+                <Bot className="w-6 h-6 text-brand-400" />
+              </div>
+              <div>
+                <span className="font-black text-sm block tracking-tight">Srujith AI</span>
+                <span className="text-[9px] text-brand-500 uppercase tracking-widest font-mono flex items-center gap-1.5 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+                  Online
+                </span>
+              </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+            <button 
+              onClick={() => setIsOpen(false)} 
+              className="p-3 text-slate-500 hover:text-white transition-colors hover:bg-slate-800 rounded-2xl"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin scrollbar-thumb-slate-800">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
+                <div className={`max-w-[85%] px-5 py-4 rounded-[1.5rem] text-sm leading-relaxed ${
                   msg.role === 'user' 
-                    ? 'bg-cyan-600 text-white rounded-tr-none' 
-                    : 'bg-slate-700 text-slate-200 rounded-tl-none'
+                    ? 'bg-brand-500 text-[#020617] rounded-tr-none font-bold shadow-lg shadow-brand-900/10' 
+                    : 'bg-slate-900/80 text-slate-200 rounded-tl-none border border-slate-800 backdrop-blur-sm shadow-xl'
                 }`}>
-                  {msg.text}
+                  {msg.text || (isLoading && i === messages.length - 1 ? 'Thinking...' : '')}
                 </div>
               </div>
             ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-slate-700 p-3 rounded-2xl rounded-tl-none text-slate-400 text-sm animate-pulse">
-                  Thinking...
-                </div>
-              </div>
-            )}
             <div ref={chatEndRef} />
           </div>
 
-          <div className="p-4 bg-slate-900 border-t border-slate-700">
-            <div className="relative">
+          <div className="p-6 bg-slate-900/30 border-t border-slate-800">
+            <div className="relative flex items-center gap-3">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Ask about projects..."
-                className="w-full bg-slate-800 text-sm border border-slate-700 rounded-full py-2.5 pl-4 pr-10 focus:outline-none focus:border-cyan-400 text-slate-200"
+                placeholder="Ask Srujith's AI..."
+                className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl py-4 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all text-slate-200 placeholder:text-slate-600"
               />
               <button 
                 onClick={handleSend}
-                disabled={isLoading}
-                className="absolute right-2 top-1.5 p-1 text-cyan-400 hover:text-cyan-300 disabled:opacity-50"
+                disabled={isLoading || !input.trim()}
+                className="p-4 bg-brand-500 hover:bg-brand-400 disabled:bg-slate-800 disabled:text-slate-600 text-[#020617] rounded-2xl transition-all shadow-xl shadow-brand-900/20 active:scale-95"
               >
                 <Send className="w-5 h-5" />
               </button>
@@ -125,9 +140,11 @@ const GeminiChat: React.FC = () => {
       ) : (
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-cyan-600 hover:bg-cyan-500 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110 active:scale-95 group"
+          className="relative group bg-slate-900 hover:bg-brand-500 text-brand-400 hover:text-[#020617] p-6 rounded-[2rem] shadow-2xl transition-all hover:scale-110 active:scale-95 z-50 border border-slate-800 overflow-hidden"
         >
-          <MessageSquare className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+          <MessageSquare className="w-8 h-8 group-hover:rotate-6 transition-transform" />
+          <div className="absolute top-4 right-4 w-3 h-3 bg-brand-500 border-2 border-[#020617] rounded-full animate-ping group-hover:hidden" />
         </button>
       )}
     </div>

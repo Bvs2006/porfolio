@@ -18,10 +18,12 @@ import { Project, SkillCategory, Education, Achievement, Certification } from '.
 
 export const PERSONAL_INFO = {
   name: "Venkata Srujith Bellamkonda",
+  title: "AI & ML Engineer | Competitive Programmer",
   phone: "+91 8331893625",
   email: "venkatasrujithb@gmail.com",
   linkedin: "https://linkedin.com",
   github: "https://github.com/Bvs2006",
+  profileImage: "./profile.png", // The user's provided photo should be named profile.png
   objective: "Motivated B.Tech student in Artificial Intelligence & Machine Learning with a strong foundation in programming, data structures, and algorithmic problem-solving. Proficient in C++ and Java, with hands-on experience in debugging, optimizing code, and developing efficient solutions."
 };
 

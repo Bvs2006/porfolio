@@ -7,14 +7,41 @@
     <title>Venkata Srujith | AI & ML Engineer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: '#f0fdf4',
+                100: '#dcfce7',
+                200: '#bbf7d0',
+                300: '#86efac',
+                400: '#4ade80',
+                500: '#22c55e',
+                600: '#16a34a',
+                DEFAULT: '#4ade80', // Matching the vibrant green from the photo
+              }
+            }
+          }
+        }
+      }
+    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0f172a;
+            background-color: #020617;
             color: #f1f5f9;
         }
         .font-mono {
             font-family: 'Fira Code', monospace;
+        }
+        .profile-glow {
+            box-shadow: 0 0 50px -12px rgba(74, 222, 128, 0.3);
+        }
+        .coder-text {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
         }
     </style>
 <script type="importmap">
