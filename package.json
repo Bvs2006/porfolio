@@ -1,4 +1,3 @@
-
 {
   "name": "srujith-portfolio",
   "private": true,
@@ -10,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/genai": "^1.34.0",
     "lucide-react": "^0.462.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
